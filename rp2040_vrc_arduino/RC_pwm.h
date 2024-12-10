@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "hardware/timer.h"
 
+#define CLK_MLTP 12
+
 uint8_t PWM_pins[4] = {0, 1, 2, 3};
 volatile uint32_t pulseStartTime[4]; // Support multiple pins if needed
 volatile uint32_t pulseWidth[4];

@@ -54,7 +54,7 @@ void loop() {
   //wait until at least one of the channels measures PWM width
   while (changeflag == 0) {
     //if no PWM for 1s -> print "No signal"
-    if (millis() - lastPrintTime >= 12*2000) {
+    if (millis() - lastPrintTime >= CLK_MLTP*2000) {
       Serial.println("No signal");
       lastPrintTime = millis();
     }
@@ -72,35 +72,37 @@ void loop() {
 
   //perform max min on the measured signals
   for(uint8_t pin = 0; pin < 4; ++pin){
-    width[pin] = max(12*1000, min(12*2000, width[pin]));
+    width[pin] = max(1000, min(2000, width[pin]/CLK_MLTP))-1000;
   }
   
   //go over the inputs and calculate outputs - Circuit Superstars specific
-  gp.axis[0] = map(width[0],12*1000,12*2000,0,0xFFFF);
-  gp.axis[1] = 0xFFFF/2;
-  if(width[1] > 12*1500){
-    gp.axis[2] = map(width[1],12*1500,12*2000,0xFFFF/2,0xFFFF);
-    gp.axis[3] = 0xFFFF/2;
+  gp.axis[0] = width[0];
+  gp.axis[1] = 500;
+  if(width[1] > 500){
+    gp.axis[2] = width[1];
+    gp.axis[3] = 500;
   }
   else{
-    gp.axis[3] = map(width[1],12*1500,12*1000,0xFFFF/2,0xFFFF);
-    gp.axis[2] = 0xFFFF/2;    
+    gp.axis[3] = 1000-width[1];
+    gp.axis[2] = 500;    
   }
+  gp.axis[4] = 500;
+  gp.axis[5] = 500;
 
   static pwm_state ch4_state = mid;
   static uint32_t ch4_timer = 0;
 
-  if(micros() - ch4_timer > 12*50000){
+  if(micros() - ch4_timer > CLK_MLTP*50000){
     gp.buttons = 0;
     switch(ch4_state){
       case low:
-        if(width[3] >= 12*1250 && width[3] < 12*1750){
+        if(width[3] >= 250 && width[3] < 750){
           //+ -> menu
           gp.buttons = (1<<9);
           ch4_state = mid;
           ch4_timer = time_us_32();
         }
-        else if(width[3] >= 12*1750){
+        else if(width[3] >= 750){
           //- -> back
           gp.buttons = (1<<1);
           ch4_state = high;
@@ -109,13 +111,13 @@ void loop() {
         break;
 
       case mid:
-        if(width[3] >= 12*1750){
+        if(width[3] >= 750){
           //+ -> menu
           gp.buttons = (1<<9);
           ch4_state = high;
           ch4_timer = time_us_32();
         }
-        else if(width[3] < 12*1250){
+        else if(width[3] < 250){
           //- -> back
           gp.buttons = (1<<1);
           ch4_state = low;
@@ -124,13 +126,13 @@ void loop() {
         break;
 
       case high:
-        if(width[3] < 12*1250){
+        if(width[3] < 250){
           //+ -> menu
           gp.buttons = (1<<9);
           ch4_state = low;
           ch4_timer = time_us_32();
         }
-        else if(width[3] >= 12*1250 && width[3] < 12*1750){
+        else if(width[3] >= 250 && width[3] < 750){
           //- -> back
           gp.buttons = (1<<1);
           ch4_state = mid;
@@ -140,7 +142,7 @@ void loop() {
     }
   }
 
-  if(width[2] > 12*1500){ //CH3 controls button 4 (reset position + optionally opponent names)
+  if(width[2] > 500){ //CH3 controls button 4 (reset position + optionally opponent names)
     gp.buttons |= (1<<4);
   }
   else{
@@ -151,7 +153,7 @@ void loop() {
   usb_hid.sendReport(0, &gp, sizeof(gp));
 
   //debug printing
-  if (millis() - lastPrintTime >= 12*500) {
+  if (millis() - lastPrintTime >= CLK_MLTP*500) {
     Serial.printf("CH1 %i CH2 %i CH3 %i CH4 %i, flags 0x%x\n", width[0], width[1], width[2], width[3], test_flags);
     test_flags = 0;
     lastPrintTime = millis(); // Update the last print time

@@ -2,7 +2,7 @@
 
 typedef struct TU_ATTR_PACKED
 {
-  uint16_t axis[4];
+  uint16_t axis[6];
   uint16_t buttons;          ///< Buttons mask for currently pressed buttons
 }hid_custom_gamepad_report_t;
 
@@ -15,9 +15,11 @@ typedef struct TU_ATTR_PACKED
     HID_USAGE          ( HID_USAGE_DESKTOP_Y                    ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_Z                    ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_RX                   ) ,\
+    HID_USAGE          ( HID_USAGE_DESKTOP_RY                   ) ,\
+    HID_USAGE          ( HID_USAGE_DESKTOP_RZ                   ) ,\
     HID_LOGICAL_MIN_N  ( 0x0000, 2                              ) ,\
-    HID_LOGICAL_MAX_N  ( 0xFFFF, 2                              ) ,\
-    HID_REPORT_COUNT   ( 4                                      ) ,\
+    HID_LOGICAL_MAX_N  ( 1000, 2                                ) ,\
+    HID_REPORT_COUNT   ( 6                                      ) ,\
     HID_REPORT_SIZE    ( 16                                     ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
     /* 8bit Button Map */                                          \
