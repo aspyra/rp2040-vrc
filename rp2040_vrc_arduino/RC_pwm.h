@@ -3,7 +3,6 @@
 
 #define CLK_MLTP 12
 
-uint8_t PWM_pins[4] = {0, 1, 2, 3};
 volatile uint32_t pulseStartTime[4]; // Support multiple pins if needed
 volatile uint32_t pulseWidth[4];
 volatile uint8_t changeflag = 0;
@@ -38,4 +37,3 @@ void setup_PWM(){
   attachInterrupt(digitalPinToInterrupt(PWM_pins[2]), RC_PWM_INT2, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PWM_pins[3]), RC_PWM_INT3, CHANGE);
 }
-//*/

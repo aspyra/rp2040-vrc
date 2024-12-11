@@ -3,7 +3,7 @@
 typedef struct TU_ATTR_PACKED
 {
   uint16_t axis[6];
-  uint16_t buttons;          ///< Buttons mask for currently pressed buttons
+  uint16_t buttons;
 }hid_custom_gamepad_report_t;
 
 #define TUD_HID_REPORT_DESC_CUSTOM_GAMEPAD(...)                    \
@@ -32,3 +32,5 @@ typedef struct TU_ATTR_PACKED
     HID_REPORT_SIZE    ( 1                                      ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
   HID_COLLECTION_END                                               \
+
+//EOF
