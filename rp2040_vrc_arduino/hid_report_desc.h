@@ -18,7 +18,7 @@ typedef struct TU_ATTR_PACKED
     HID_USAGE          ( HID_USAGE_DESKTOP_RY                   ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_RZ                   ) ,\
     HID_LOGICAL_MIN_N  ( 0x0000, 2                              ) ,\
-    HID_LOGICAL_MAX_N  ( 1000, 2                                ) ,\
+    HID_LOGICAL_MAX_N  ( CLK_MLTP*1000, 2                       ) ,\
     HID_REPORT_COUNT   ( 6                                      ) ,\
     HID_REPORT_SIZE    ( 16                                     ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\

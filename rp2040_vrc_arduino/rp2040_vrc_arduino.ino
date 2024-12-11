@@ -1,8 +1,8 @@
 //MIT license, check LICENSE for more information
 
 #include "Adafruit_TinyUSB.h"
-#include "hid_report_desc.h"
 #include "RC_pwm.h"
+#include "hid_report_desc.h"
 
 enum pwm_state {low = 0, mid = 1, high = 2};
 
@@ -72,37 +72,40 @@ void loop() {
 
   //perform max min on the measured signals
   for(uint8_t pin = 0; pin < 4; ++pin){
-    width[pin] = max(1000, min(2000, width[pin]/CLK_MLTP))-1000;
+    width[pin] = max(CLK_MLTP*1000, min(CLK_MLTP*2000, width[pin]))-CLK_MLTP*1000;
   }
   
   //go over the inputs and calculate outputs - Circuit Superstars specific
   gp.axis[0] = width[0];
-  gp.axis[1] = 500;
-  if(width[1] > 500){
+  gp.axis[1] = CLK_MLTP*500;
+  if(width[1] > CLK_MLTP*500){
     gp.axis[2] = width[1];
-    gp.axis[3] = 500;
+    gp.axis[3] = CLK_MLTP*500;
   }
   else{
-    gp.axis[3] = 1000-width[1];
-    gp.axis[2] = 500;    
+    gp.axis[3] = CLK_MLTP*1000-width[1];
+    gp.axis[2] = CLK_MLTP*500;    
   }
-  gp.axis[4] = 500;
-  gp.axis[5] = 500;
+  gp.axis[4] = CLK_MLTP*500;
+  gp.axis[5] = CLK_MLTP*500;
 
   static pwm_state ch4_state = mid;
   static uint32_t ch4_timer = 0;
+
+  const uint32_t low_th = CLK_MLTP*250;
+  const uint32_t hi_th = CLK_MLTP*750;
 
   if(micros() - ch4_timer > CLK_MLTP*50000){
     gp.buttons = 0;
     switch(ch4_state){
       case low:
-        if(width[3] >= 250 && width[3] < 750){
+        if(width[3] >= low_th && width[3] < hi_th){
           //+ -> menu
           gp.buttons = (1<<9);
           ch4_state = mid;
           ch4_timer = time_us_32();
         }
-        else if(width[3] >= 750){
+        else if(width[3] >= hi_th){
           //- -> back
           gp.buttons = (1<<1);
           ch4_state = high;
@@ -111,13 +114,13 @@ void loop() {
         break;
 
       case mid:
-        if(width[3] >= 750){
+        if(width[3] >= hi_th){
           //+ -> menu
           gp.buttons = (1<<9);
           ch4_state = high;
           ch4_timer = time_us_32();
         }
-        else if(width[3] < 250){
+        else if(width[3] < low_th){
           //- -> back
           gp.buttons = (1<<1);
           ch4_state = low;
@@ -126,13 +129,13 @@ void loop() {
         break;
 
       case high:
-        if(width[3] < 250){
+        if(width[3] < low_th){
           //+ -> menu
           gp.buttons = (1<<9);
           ch4_state = low;
           ch4_timer = time_us_32();
         }
-        else if(width[3] >= 250 && width[3] < 750){
+        else if(width[3] >= low_th && width[3] < hi_th){
           //- -> back
           gp.buttons = (1<<1);
           ch4_state = mid;
