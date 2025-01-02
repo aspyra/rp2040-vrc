@@ -1,11 +1,12 @@
 //Pins for RC PWM input
-uint8_t PWM_pins[4] = {0, 1, 2, 3};
+const uint8_t PWM_pins[4] = {0, 1, 2, 3};
 
 //game list
-enum gm{
+typedef enum{
   vrc = 1,
-  circuit_superstars = 2
-};
+  circuit_superstars = 2,
+  wrap
+}gm;
 
-//Specific game input
-const enum gm game = circuit_superstars; 
+//Specify default game
+gm game = vrc; 

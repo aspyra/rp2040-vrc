@@ -4,6 +4,8 @@
 #include "Adafruit_TinyUSB.h"
 #include "RC_pwm.h"
 #include "hid_report_desc.h"
+#include "status_LED.h"
+#include "boot_button.h"
 
 enum pwm_state {low = 0, mid = 1, high = 2};
 
@@ -13,6 +15,8 @@ uint8_t const desc_hid_report[] = {TUD_HID_REPORT_DESC_CUSTOM_GAMEPAD()};
 hid_custom_gamepad_report_t gp;
 
 void setup() {
+  setup_LED();
+  LED_set(CRGB::Red);
   Serial.begin(115200);
   { //TinyUSB stuff
     // Manual begin() is required on core without built-in support e.g. mbed rp2040
@@ -36,6 +40,7 @@ void setup() {
     }
   }
   setup_PWM();
+  LED_set(CRGB::Black);
 }
 
 void loop() {
@@ -169,10 +174,24 @@ void loop() {
 
   usb_hid.sendReport(0, &gp, sizeof(gp));
 
+  bool buttonState = get_bootsel_button();
+  static bool prevButton = false;
+  if(!prevButton && buttonState){
+    game = static_cast<gm>((static_cast<int>(game) + 1));
+    if(game == wrap) game = static_cast<gm>(1);
+    LED_update(true);
+    LED_set(CRGB::Red);
+  }
+  else{
+    LED_update();
+  }
+  prevButton = buttonState;
+  
+
+
   if (millis() - lastPrintTime >= CLK_MLTP*500) { //debug printing
-    Serial.printf("CH1 %i CH2 %i CH3 %i CH4 %i, flags 0x%x\n", pwm_in[0], pwm_in[1], pwm_in[2], pwm_in[3], test_flags);
+    Serial.printf("CH1 %i CH2 %i CH3 %i CH4 %i, flags 0x%x b%i\n", pwm_in[0], pwm_in[1], pwm_in[2], pwm_in[3], test_flags, buttonState);
     test_flags = 0;
     lastPrintTime = millis(); // Update the last print time
   }
-
 }
