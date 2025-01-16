@@ -1,6 +1,8 @@
 #include "Adafruit_TinyUSB.h"
 #include "class\hid\hid_device.h"
 #define MAX_HID_SIGNAL 0xFFFF
+#define MIN_HID_SIGNAL 0x0000
+#define MID_HID_SIGNAL (MAX_HID_SIGNAL + MIN_HID_SIGNAL)/2
 
 typedef struct TU_ATTR_PACKED{
   uint16_t axis[6];
@@ -26,7 +28,7 @@ void send_gp();
     HID_USAGE          ( HID_USAGE_DESKTOP_RX                   ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_RY                   ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_RZ                   ) ,\
-    HID_LOGICAL_MIN_N  ( 0x0000, 2                              ) ,\
+    HID_LOGICAL_MIN_N  ( MIN_HID_SIGNAL, 2                      ) ,\
     HID_LOGICAL_MAX_N  ( MAX_HID_SIGNAL, 2                      ) ,\
     HID_REPORT_COUNT   ( 6                                      ) ,\
     HID_REPORT_SIZE    ( 16                                     ) ,\

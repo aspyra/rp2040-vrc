@@ -2,6 +2,11 @@
 #include "hardware/timer.h"
 #include <EEPROM.h>
 
+//RP2040 pins for RC PWM input (in order)
+const uint8_t PWM_pins[4] = {0, 1, 2, 3};
+
+const uint32_t CLK_MLTP = 12; //we trick the timer into running 12x faster, so we need to scale ALL time references
+
 typedef struct{
   uint16_t pwm_in_max[4];
   uint16_t pwm_in_min[4];
@@ -9,12 +14,15 @@ typedef struct{
   uint8_t check_byte;
 }eeprom_data_t;
 
+const uint32_t pwm_in_abs_min = 98 * CLK_MLTP;
+const uint32_t pwm_in_abs_max = 2550 * CLK_MLTP;
+const uint32_t bind_offset = 2 * CLK_MLTP; //1ms of min/max offset that ensures 'saturation' on ends
+
 // Global variables and functions -------------------------------------------------------------------
 
-#define CLK_MLTP 12
 uint8_t change_flags = 0;
 uint32_t pwm_in[4];
-eeprom_data_t bindData;
+eeprom_data_t bindData, newBindData;
 
 // -------------------------------------------------------------------
 
@@ -41,15 +49,44 @@ void RC_PWM_INT2(){handleRCPWM(2);}
 void RC_PWM_INT3(){handleRCPWM(3);}
 
 void update_bindData(){
-  ;
+  for(uint8_t ch = 0; ch < 4; ++ch){
+    if((pwm_in[ch] >= pwm_in_abs_min) && (pwm_in[ch] <= pwm_in_abs_max)){ //make sure signal makes sense
+      if(pwm_in[ch] > newBindData.pwm_in_max[ch]){
+        newBindData.pwm_in_max[ch] = pwm_in[ch] - bind_offset;
+      }
+      if(pwm_in[ch] < newBindData.pwm_in_min[ch]){
+        newBindData.pwm_in_min[ch] = pwm_in[ch] + bind_offset;
+      }
+      newBindData.pwm_in_mid[ch] = pwm_in[ch];
+    }
+  }
+}
+
+void debug_bindData(){
+  static unsigned long lastDebugTime = 0;
+  if((millis() - lastDebugTime) > (500 * CLK_MLTP)){
+    Serial.printf("Inputs: CH1 %fus, CH2 %fus, CH3 %fus, CH4 %fus\n", float(pwm_in[0])/12.0, float(pwm_in[1])/12.0, float(pwm_in[2])/12.0, float(pwm_in[3])/12.0);
+    for(uint8_t ch = 0; ch < 4; ++ch){
+      Serial.printf("Previous bind setting for CH%i: min &fus, mid %fus, max %fus  ", ch, float(bindData.pwm_in_min[ch])/12.0, float(bindData.pwm_in_min[ch])/12.0, float(bindData.pwm_in_min[ch])/12.0);
+      Serial.printf("New bind setting for CH%i: min &fus, mid %fus, max %fus\n", ch, float(newBindData.pwm_in_min[ch])/12.0, float(newBindData.pwm_in_min[ch])/12.0, float(newBindData.pwm_in_min[ch])/12.0);
+    }
+  }
+}
+
+void reset_new_bindData(){
+  newBindData.check_byte = 0xAA;
+  for(uint8_t ch = 0; ch < 4; ++ch){
+      bindData.pwm_in_max[ch] = pwm_in_abs_min;
+      bindData.pwm_in_min[ch] = pwm_in_abs_max;
+      bindData.pwm_in_mid[ch] = 0;    
+  }
 }
 
 void save_new_bindData(){
-  ;
-}
-
-void discard_new_bindData(){
-  ;
+  memcpy(&bindData, &newBindData, sizeof(eeprom_data_t));
+  reset_new_bindData();
+  EEPROM.put(0, bindData);
+  EEPROM.commit();
 }
 
 void setup_PWM(){
@@ -61,15 +98,17 @@ void setup_PWM(){
 
   EEPROM.begin(256);
   EEPROM.get(0, bindData);
-  if(bindData.check_byte != 0xAA){
+  if(bindData.check_byte != 0xAA){//if check_byte is not correct, restore 'default' values
     bindData.check_byte = 0xAA;
     for(uint8_t ch = 0; ch < 4; ++ch){
       bindData.pwm_in_max[ch] = 2000 * CLK_MLTP;
       bindData.pwm_in_min[ch] = 1000 * CLK_MLTP;
       bindData.pwm_in_mid[ch] = 1500 * CLK_MLTP;
     }
+    EEPROM.put(0, bindData);
     EEPROM.commit();
   }
+  reset_new_bindData();
 
   attachInterrupt(digitalPinToInterrupt(PWM_pins[0]), RC_PWM_INT0, CHANGE);
   attachInterrupt(digitalPinToInterrupt(PWM_pins[1]), RC_PWM_INT1, CHANGE);
@@ -83,14 +122,33 @@ bool update_PWM_values(){
     for(uint8_t pin = 0; pin < 4; ++pin){
       if((_change_flags>>pin) & 0x01){
         pwm_in[pin] = pulseWidth[pin];
-        //perform max min on the measured signals
-        pwm_in[pin] = max(bindData.pwm_in_min[pin], min(bindData.pwm_in_max[pin], pwm_in[pin]))-bindData.pwm_in_min[pin];
       }
     }
     change_flags = _change_flags;
     _change_flags = 0;
     interrupts();
+
+    for(uint8_t pin = 0; pin < 4; ++pin){
+      if((change_flags>>pin) & 0x01){
+        	//perform max min on the measured signals
+	        pwm_in[pin] = max(bindData.pwm_in_min[pin], min(bindData.pwm_in_max[pin], pwm_in[pin]))-bindData.pwm_in_min[pin];
+      }
+    }
+
     return true;
   }
   return false;
+}
+
+uint32_t scale_pwm(uint8_t channel, uint32_t out_min, uint32_t out_max){ //extended map() function to include mid-point. Beware of uint32_t overflows
+  if(pwm_in[channel] >= bindData.pwm_in_mid[channel]){
+    uint32_t numerator = (pwm_in[channel] - bindData.pwm_in_mid[channel])*(out_max - out_min);
+    uint32_t denominator = (bindData.pwm_in_max[channel] - bindData.pwm_in_mid[channel]);
+    return ((numerator / denominator) + (out_max + out_min))/2;
+  }
+  else{
+    uint32_t numerator = (pwm_in[channel] - bindData.pwm_in_min[channel])*(out_max - out_min);
+    uint32_t denominator = (bindData.pwm_in_mid[channel] - bindData.pwm_in_min[channel]);
+    return (numerator / denominator)/2 + out_min;
+  }
 }
