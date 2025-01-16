@@ -3,12 +3,11 @@
 #include "USB_and_HID_report.h"
 #include "RC_pwm.h"
 #include "status_LED.h"
-#include "boot_button.h"
+//#include "boot_button.h"
 
 #include "game_specific_settings.h" //requires "RC_pwm.h"
 
-enum pwm_state_t {low = 0, mid = 1, high = 2};
-enum adapter_mode_t {running, binding} mode = running;
+enum adapter_mode_t {running, binding} mode = binding; //running;
 
 void setup() {
   setup_LED();
@@ -24,7 +23,12 @@ void setup() {
 }
 
 void loop() {
+  static unsigned long lastUpdateTime = 0;
   loop_gp();
+  CRGB colors[1] = {CRGB::Green};
+  loop_LED(game, colors, 1);
+  }/*
+  
   //check if signal from any channel was received
   if(update_PWM_values()){
     if(mode == binding){
@@ -32,10 +36,11 @@ void loop() {
     }
     update_gp_by_game(change_flags, gp, pwm_in);
     send_gp();
+    lastUpdateTime = millis();
   }
   else{
     //if no input signal, do all the stuff that isn't critical
-    process_button();
+    //process_button();
     if(mode == binding){
       debug_bindData();
       CRGB colors[4] = {CRGB::Blue, CRGB::Blue, CRGB::Blue, CRGB::Blue};
@@ -50,10 +55,13 @@ void loop() {
           colors[ch] = CRGB::White;
         }
       }
-       loop_LED(4, colors, 4);
+      loop_LED(4, colors, 4);
     }
     else{
       CRGB colors[1] = {CRGB::Green};
+      if(millis() - lastUpdateTime > 1000 * CLK_MLTP){
+        colors[0] = CRGB::Red;
+      }
       loop_LED(game, colors, 1);
     }
   }
@@ -82,7 +90,7 @@ void process_button(){
       if(mode == running){
         if(long_press){
           mode = binding;
-          LED_set_blink();
+          //LED_set_blink();
         }
         else{ //short press
           game = static_cast<game_t>(game + 1);
@@ -102,5 +110,5 @@ void process_button(){
     case NOT_CHANGED:
       break;
   }
-}
+}*/
 
