@@ -11,39 +11,40 @@ void update_gp_by_game(uint8_t _changeflags, hid_custom_gamepad_report_t &_gp, u
     case vrc:
       if(no_signal){
         for(uint8_t axis = 0; axis < 6; ++axis){
-          _gp.axis[axis] = MID_HID_SIGNAL;
+          _gp.axis[axis] = 0;
         }
       }
       else{
         for(uint8_t axis = 0; axis < 4; ++axis){
-          if(_changeflags>>axis & 0x01){
-            _gp.axis[axis] = scale_pwm(axis, MIN_HID_SIGNAL, MAX_HID_SIGNAL);
+          if((_changeflags>>axis) & 0x01){
+            _gp.axis[axis] = scale_pwm(axis);
           }
         }
-        _gp.axis[4] = MID_HID_SIGNAL;
-        _gp.axis[5] = MID_HID_SIGNAL;
+        _gp.axis[4] = 0;
+        _gp.axis[5] = 0;
       }
       break;
 
     case circuit_superstars:
       if(no_signal){
         for(uint8_t axis = 0; axis < 6; ++axis){
-          _gp.axis[axis] = MID_HID_SIGNAL;
+          _gp.axis[axis] = 0;
         }
       }
       else{
-        _gp.axis[0] = _pwm_in[0];
-        _gp.axis[1] = MID_HID_SIGNAL;
-        if(_pwm_in[1] > MID_HID_SIGNAL){
-          _gp.axis[2] = _pwm_in[1];
-          _gp.axis[3] = MID_HID_SIGNAL;
+        _gp.axis[0] = scale_pwm(0);
+        _gp.axis[1] = 0;
+        int16_t thr = scale_pwm(1);
+        if(thr > 0){
+          _gp.axis[2] = thr;
+          _gp.axis[3] = 0;
         }
         else{
-          _gp.axis[3] = MAX_HID_SIGNAL-_pwm_in[1];
-          _gp.axis[2] = MID_HID_SIGNAL;   
+          _gp.axis[3] = -thr;
+          _gp.axis[2] = 0;   
         }
-        _gp.axis[4] = MID_HID_SIGNAL;
-        _gp.axis[5] = MID_HID_SIGNAL;
+        _gp.axis[4] = 0;
+        _gp.axis[5] = 0;
       }
       break;
   }

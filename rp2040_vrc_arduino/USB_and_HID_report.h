@@ -1,11 +1,10 @@
 #include "Adafruit_TinyUSB.h"
 #include "class\hid\hid_device.h"
-#define MAX_HID_SIGNAL 0xFFFF
-#define MIN_HID_SIGNAL 0x0000
-#define MID_HID_SIGNAL (MAX_HID_SIGNAL + MIN_HID_SIGNAL)/2
+const int16_t MAX_HID_SIGNAL = 32000;
+const int16_t MIN_HID_SIGNAL = -32000;
 
 typedef struct TU_ATTR_PACKED{
-  uint16_t axis[6];
+  int16_t axis[6];
   uint16_t buttons;
 }hid_custom_gamepad_report_t;
 
@@ -28,8 +27,8 @@ void send_gp();
     HID_USAGE          ( HID_USAGE_DESKTOP_RX                   ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_RY                   ) ,\
     HID_USAGE          ( HID_USAGE_DESKTOP_RZ                   ) ,\
-    HID_LOGICAL_MIN_N  ( MIN_HID_SIGNAL, 2                      ) ,\
-    HID_LOGICAL_MAX_N  ( MAX_HID_SIGNAL, 2                      ) ,\
+    HID_LOGICAL_MIN_N  ( (uint16_t)MIN_HID_SIGNAL, 2            ) ,\
+    HID_LOGICAL_MAX_N  ( (uint16_t)MAX_HID_SIGNAL, 2            ) ,\
     HID_REPORT_COUNT   ( 6                                      ) ,\
     HID_REPORT_SIZE    ( 16                                     ) ,\
     HID_INPUT          ( HID_DATA | HID_VARIABLE | HID_ABSOLUTE ) ,\
@@ -47,6 +46,13 @@ void send_gp();
 // USB HID object, descriptor & gamepad report (data sent to PC)
 Adafruit_USBD_HID usb_hid;
 uint8_t const desc_hid_report[] = {TUD_HID_REPORT_DESC_CUSTOM_GAMEPAD()};
+
+void reset_gp(){
+  for(uint8_t axis = 0; axis < 6; ++axis){
+    gp.axis[axis] = 0;
+  }
+  gp.buttons = 0;
+}
 
 void setup_gp(){ //TinyUSB stuff
   // Manual begin() is required on core without built-in support e.g. mbed rp2040
@@ -66,10 +72,7 @@ void setup_gp(){ //TinyUSB stuff
     TinyUSBDevice.attach();
   }
 
-  for(uint8_t axis = 0; axis < 6; ++axis){
-    gp.axis[axis] = MID_HID_SIGNAL;
-  }
-  gp.buttons = 0;
+  reset_gp();
 }
 
 void loop_gp(){ //TinyUSB stuff
@@ -78,6 +81,8 @@ void loop_gp(){ //TinyUSB stuff
   TinyUSBDevice.task();
   #endif
 }
+
+
 
 void send_gp(){
   // not enumerated()/mounted() yet: nothing to do

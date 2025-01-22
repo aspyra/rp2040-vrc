@@ -78,6 +78,7 @@ void process_button_and_LED(){
         }
         else{ //short press
           game = static_cast<game_t>(game + 1);
+          reset_gp();
           if (game >= wrap) {
             game = static_cast<game_t>(1);
           }
@@ -101,11 +102,8 @@ void process_button_and_LED(){
       debug_bindData();
       CRGB colors[4] = {CRGB::Blue, CRGB::Blue, CRGB::Blue, CRGB::Blue};
       for(uint8_t ch = 0; ch < 4; ++ch){
-        if(pwm_in[ch] <= bindData.pwm_in_min[ch]){
-          colors[ch] += CRGB::Green;
-        }
-        if(pwm_in[ch] >= bindData.pwm_in_max[ch]){
-          colors[ch] += CRGB::Red;
+        if(pwm_in[ch] <= bindData.pwm_in_min[ch] || pwm_in[ch] >= bindData.pwm_in_max[ch]){
+          colors[ch] = CRGB::Red;
         }
         if((pwm_in[ch] >= (bindData.pwm_in_mid[ch] - bind_offset)) && (pwm_in[ch] <= (bindData.pwm_in_mid[ch] + bind_offset))){
           colors[ch] = CRGB::White;
@@ -115,8 +113,9 @@ void process_button_and_LED(){
     }
     else{
       CRGB colors[1] = {CRGB::Green};
-      if(!signal_ok)
-      colors[0] = CRGB::Red;
+      if(!signal_ok){
+        colors[0] = CRGB::Red;
+      }
       loop_LED(game, colors, 1);
     }
 }

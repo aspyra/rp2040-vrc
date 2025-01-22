@@ -155,18 +155,20 @@ bool update_PWM_values(){
   return false;
 }
 
-uint32_t scale_pwm(uint8_t channel, uint32_t out_min, uint32_t out_max){ //extended map() function to include mid-point. Beware of uint32_t overflows
-  uint32_t numerator, denominator, output;
+int16_t scale_pwm(uint8_t channel){ //extended map() function to include mid-point. Beware of uint32_t overflows
+  uint16_t max_val = MAX_HID_SIGNAL-MIN_HID_SIGNAL+1;
+  uint32_t numerator, denominator;
+  int32_t output;
   if(pwm_in[channel] >= bindData.pwm_in_mid[channel]){
-    numerator = (pwm_in[channel] - bindData.pwm_in_mid[channel])*(out_max - out_min);
+    numerator = (pwm_in[channel] - bindData.pwm_in_mid[channel])*(max_val);
     denominator = (bindData.pwm_in_max[channel] - bindData.pwm_in_mid[channel]);
-    output = ((numerator / denominator) + (out_max + out_min))/2;
+    output = ((numerator / denominator) + (max_val))/2;
   }
   else{
-    numerator = (pwm_in[channel] - bindData.pwm_in_min[channel])*(out_max - out_min);
+    numerator = (pwm_in[channel] - bindData.pwm_in_min[channel])*(max_val);
     denominator = (bindData.pwm_in_mid[channel] - bindData.pwm_in_min[channel]);
-    output = (numerator / denominator)/2 + out_min;
+    output = (numerator / denominator)/2;
   }
   //Serial.printf("PWM%i:%i,N%i:%i,D%i:%i,O%i:%i\n", channel, pwm_in[channel], channel, numerator, channel, denominator, channel, output);
-  return output;
+  return (int16_t)(output - 32000);
 }
