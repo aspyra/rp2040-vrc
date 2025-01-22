@@ -65,6 +65,11 @@ void setup_gp(){ //TinyUSB stuff
     delay(10);
     TinyUSBDevice.attach();
   }
+
+  for(uint8_t axis = 0; axis < 6; ++axis){
+    gp.axis[axis] = MID_HID_SIGNAL;
+  }
+  gp.buttons = 0;
 }
 
 void loop_gp(){ //TinyUSB stuff
@@ -72,15 +77,12 @@ void loop_gp(){ //TinyUSB stuff
   // Manual call tud_task since it isn't called by Core's background
   TinyUSBDevice.task();
   #endif
-  /*
-  // not enumerated()/mounted() yet: nothing to do
-  if (!TinyUSBDevice.mounted()) {
-    return;
-  }
-
-  if (!usb_hid.ready()) return;*/
 }
 
 void send_gp(){
+  // not enumerated()/mounted() yet: nothing to do
+  if (!TinyUSBDevice.mounted() || !usb_hid.ready()) {
+    return;
+  }
   usb_hid.sendReport(0, &gp, sizeof(gp));
 }

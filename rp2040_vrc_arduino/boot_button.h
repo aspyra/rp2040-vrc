@@ -7,7 +7,7 @@
 
 // Global variables and functions -------------------------------------------------------------------
 
-enum ButtonState_t {NOT_CHANGED, NOT_PRESSED, SHORT_PRESSED, LONG_PRESSED} buttonState = NOT_PRESSED;
+enum ButtonState_t {NOT_CHANGED, RELEASED, SHORT_PRESSED, LONG_PRESSED} buttonState = RELEASED;
 ButtonState_t updateButtonState();
 
 // -------------------------------------------------------------------
@@ -45,26 +45,25 @@ bool __no_inline_not_in_flash_func(isBootselButtonPressed)() {
 }
 
 ButtonState_t updateButtonState() {
-    static unsigned long lastCheckTime = 0;
-    static unsigned long pressStartTime = 0;
-    static bool previousButtonState = false;
+  static unsigned long lastCheckTime = 0;
+  static unsigned long pressStartTime = 0;
+  static bool previousButtonState = false;
 
-    unsigned long currentTime = millis();
+  unsigned long currentTime = millis();
+  buttonState = NOT_CHANGED;
+  if (currentTime - lastCheckTime >= BUTTON_CHECK_INTERVAL) {
+    lastCheckTime = currentTime;
+    bool currentButtonState = isBootselButtonPressed();
 
-    if (currentTime - lastCheckTime >= BUTTON_CHECK_INTERVAL) {
-        lastCheckTime = currentTime;
-        bool currentButtonState = isBootselButtonPressed();
-
-        if (!previousButtonState && currentButtonState) {
-          buttonState = SHORT_PRESSED;
-          pressStartTime = currentTime;
-        } else if (currentButtonState && buttonState == SHORT_PRESSED && (currentTime - pressStartTime > LONG_PRESS_THRESHOLD)) {
-          buttonState = LONG_PRESSED;
-        } else if (previousButtonState && !currentButtonState) {
-          buttonState = NOT_PRESSED;
-        }
-        previousButtonState = currentButtonState;
-        return buttonState;
+    if (!previousButtonState && currentButtonState) {
+      buttonState = SHORT_PRESSED;
+      pressStartTime = currentTime;
+    } else if (currentButtonState && (currentTime - pressStartTime > LONG_PRESS_THRESHOLD)) {
+      buttonState = LONG_PRESSED;
+    } else if (previousButtonState && !currentButtonState) {
+      buttonState = RELEASED;
     }
-    return NOT_CHANGED;
+    previousButtonState = currentButtonState;
+  }
+  return buttonState;
 }
