@@ -132,16 +132,18 @@ void setup_PWM(){
 }
 
 bool update_PWM_values(){
+  change_flags = 0;
   if(_change_flags){
-    noInterrupts();
     for(uint8_t pin = 0; pin < 4; ++pin){
       if((_change_flags>>pin) & 0x01){
+        //manipulate only the volatile variables - turning off interrupts can change the measured signal width
+        noInterrupts();
         pwm_in_raw[pin] = pulseWidth[pin];
+        _change_flags &= ~(1<<pin);
+        interrupts();
+        change_flags |= 1<<pin;
       }
     }
-    change_flags = _change_flags;
-    _change_flags = 0;
-    interrupts();
 
     for(uint8_t pin = 0; pin < 4; ++pin){
       if((change_flags>>pin) & 0x01){
